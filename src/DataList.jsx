@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getDatabase, ref, onValue, remove } from "firebase/database";
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push } from "firebase/database";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 
 const firebaseConfig = {
@@ -16,115 +15,75 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp);
+const database = getDatabase(firebaseApp);
 
 function DataList(props) {
   const navigate = useNavigate();
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    address: "",
-    phone: "",
-    message: "",
-  });
+  const [users, setUsers] = useState([]);
 
-  const getUserData = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    const usersRef = ref(database, "users");
+    onValue(usersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const userArray = Object.values(data);
 
-  const postData = (e) => {
-    e.preventDefault();
-    const { name, email, address, phone, message } = user;
-    const id = uuidv4();
-    push(ref(db, "users"), {
-      id,
-      name,
-      email,
-      address,
-      phone,
-      message,
+        setUsers(userArray);
+      }
     });
-    setUser({
-      name: "",
-      email: "",
-      address: "",
-      phone: "",
-      message: "",
-    });
-    alert("Data Sent Successfully");
-    console.log(newUserRef);
-  };
+  }, []);
 
+  const handleDelete = (id) => {
+    remove(ref(database, `users/${id}`));
+    console.log("Deleting user with id:", id);
+  };
   return (
-    <div className="w-full">
-      <div className="mx-auto max-w-[1280px] py-[50px] ">
-        <div className="bg-gray-200 my-2 ">
-          <button
-            onClick={() => navigate("../read")}
-            className="bg-blue-500 p-5"
-          >
-            Read Data
-          </button>
-        </div>
-        <div className="w-[500px] rounded-2xl bg-sky-500 px-[50px]  mx-auto">
-          <h1 className="text-center text-white text-3xl py-5">
-            Update Data In FireBase
-          </h1>
-          <form onSubmit={postData}>
-            <div className="flex justify-between py-5">
-              <input
-                type="text"
-                name="name"
-                value={user.name}
-                placeholder="Name"
-                onChange={getUserData}
-                className="rounded-lg py-1 px-2"
-              />
-              <input
-                type="text"
-                name="email"
-                value={user.email}
-                placeholder="Email"
-                onChange={getUserData}
-                className="rounded-lg py-1 px-2"
-              />
-            </div>
-            <div className="flex justify-between">
-              <input
-                type="number "
-                name="phone"
-                value={user.phone}
-                placeholder="Mobile No"
-                onChange={getUserData}
-                className="rounded-lg py-1 px-2"
-              />
-              <input
-                type="text"
-                name="address"
-                value={user.address}
-                placeholder="Address"
-                onChange={getUserData}
-                className="rounded-lg py-1 px-2"
-              />
-            </div>
-            <div className="px-[80px] py-5">
-              <textarea
-                name="message"
-                value={user.message}
-                onChange={getUserData}
-                placeholder="Your Message"
-                className="rounded-lg py-1 px-2"
-              ></textarea>
-            </div>
-            <div className="py-5 px-[30%]">
-              <input
-                type="submit"
-                value="Send"
-                className="bg-pink-500 text-white py-1 px-5 rounded-lg"
-              />
-            </div>
-          </form>
-        </div>
+    <div className="bg-green-100 w-full py-[50px]">
+      <div className="bg-gray-200 my-2 ">
+        <button onClick={() => navigate("../")} className="bg-blue-500 p-5">
+          Read Data
+        </button>
+      </div>
+      <div className="">
+        <table className="border-collapse border border-black mx-auto">
+          <thead>
+            <tr>
+              <th className="px-4 py-2">Name</th>
+              <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">Phone</th>
+              <th className="px-4 py-2">Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((item) => {
+              return (
+                <>
+                  <td className="border border-black px-4 py-2">{item.name}</td>
+                  <td className="border border-black px-4 py-2">
+                    {item.email}
+                  </td>
+                  <td className="border border-black px-4 py-2">
+                    {item.phone}
+                  </td>
+                  <td className="border border-black  px-4 py-2">
+                    {item.address}
+                  </td>
+                  <div className="border-t border-black">
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="bg-red-500 p-2 rounded-xl"
+                    >
+                      Delete
+                    </button>
+                    <button className="bg-green-500 p-2 px-3 rounded-xl">
+                      Edit
+                    </button>
+                  </div>
+                </>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
